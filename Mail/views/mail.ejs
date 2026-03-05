@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Send Mail</title>
+</head>
+
+<body>
+
+    <h2>Send Email</h2>
+
+    <form action="/api/submit-email" method="post">
+
+        <input type="text" placeholder="Enter recipient email(s), comma-separated" name="toEmail" required>
+        <br><br>
+
+        <label>Select Email Subject:</label>
+        <select name="subject" required>
+            <option value="">--Select Subject--</option>
+            <option value="Welcome to ServEaso">
+                Welcome to ServEaso
+            </option>
+            <option value="Your Booking is Confirmed">
+                Your Booking is Confirmed
+            </option>
+            <option value="Your Order Has Been Cancelled">
+                Your Order Has Been Cancelled
+            </option>
+        </select>
+
+        <br><br>
+
+        <button type="submit">Send Mail</button>
+
+    </form>
+
+</body>
+
+</html>
