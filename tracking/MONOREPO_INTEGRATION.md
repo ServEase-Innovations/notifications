@@ -4,9 +4,27 @@
 
 The tracking service is now fully integrated into the Serveaso monorepo with:
 - ✅ Centralized database migrations
-- ✅ GitHub Actions deployment workflow
 - ✅ Shared Postgres connection configuration
-- ✅ Render deployment support
+- ✅ Monitoring and observability integration
+- ✅ Render auto-deployment (notifications repo)
+
+**Note:** The notifications service (containing tracking) deploys **separately from the main monorepo**. It has its own GitHub repository and Render auto-deploy configuration.
+
+---
+
+## Deployment Architecture
+
+### Notifications Service (Separate Repo)
+- **Repository:** `ServEase-Innovations/notifications`
+- **Contains:** Mail service + Tracking service
+- **Deployment:** Render auto-deploy (connected to notifications repo)
+- **Configuration:** `render.yaml` in notifications repo root
+
+### Other Services (Monorepo)
+- **Repository:** `ServEase-Innovations/Serveaso` (monorepo)
+- **Services:** payments, providers, coupons, utils, reviews, tickets, chat, image-uploader
+- **Deployment:** GitHub Actions workflow → Render deploy hooks
+- **Configuration:** `.github/workflows/deploy-backend.yml`
 
 ---
 
@@ -37,96 +55,106 @@ Migrations run automatically in the GitHub Actions deployment workflow when `run
 
 ## Deployment
 
-### Render Deployment (Dev)
+### Automatic Deployment (Render)
 
-The tracking service is configured for Render deployment via GitHub Actions.
+The notifications service (which includes tracking) is deployed **automatically by Render** when you push to the notifications repository.
 
-#### Required Render Setup
+**How it works:**
+1. Push changes to `ServEase-Innovations/notifications` repository
+2. Render detects the push and auto-deploys
+3. Uses `render.yaml` configuration in the repo root
+4. Builds and starts both Mail and Tracking services
 
-1. **Create Render Web Service:**
-   - Name: `serveaso-tracking`
-   - Build Command: `cd tracking && npm install`
-   - Start Command: `cd tracking && npm start`
-   - Root Directory: `services/notifications`
+**Current Setup:**
+- Service URL: `https://notifications-mjdp.onrender.com`
+- Auto-deploy: ✅ Enabled (connected to notifications repo)
+- Build Command: `cd tracking && npm install`
+- Start Command: `cd tracking && npm start`
 
-2. **Generate Deploy Hook:**
-   - Render Dashboard → tracking service → Settings → Deploy Hook
-   - Copy the URL (looks like: `https://api.render.com/deploy/srv-XXX?key=YYY`)
+### Manual Deployment
 
-3. **Add GitHub Secrets:**
-   ```
-   RENDER_DEPLOY_HOOK_TRACKING=<deploy hook URL>
-   RENDER_SERVICE_ID_TRACKING=srv-XXX
-   ```
+You can also trigger manual deploys from the Render dashboard:
+1. Go to Render dashboard → `notifications` service
+2. Click **"Manual Deploy"** → **"Deploy latest commit"**
+3. Watch logs for deployment progress
 
-4. **Add Environment Variables in Render:**
-   ```
-   NODE_ENV=production
-   PORT=5007
-   
-   # Use your existing Postgres (same as other services)
-   POSTGRES_HOST=<your-postgres-host>
-   POSTGRES_PORT=5432
-   POSTGRES_DATABASE=serveaso
-   POSTGRES_USER=<your-postgres-user>
-   POSTGRES_PASSWORD=<your-postgres-password>
-   
-   # Redis (your Redis Cloud instance)
-   REDIS_HOST=painstaking-turn-practical-89123.db.redis.io
-   REDIS_PORT=18399
-   REDIS_PASSWORD=<your-redis-password>
-   
-   # Google Maps API
-   GOOGLE_MAPS_API_KEY=<your-google-maps-api-key>
-   
-   # Security
-   JWT_SECRET=<generate with: openssl rand -base64 32>
-   ENCRYPTION_KEY=<generate with: openssl rand -hex 16>
-   
-   # Optional
-   CORS_ORIGIN=https://your-web-app.com
-   ```
+---
 
-#### Deploy via GitHub Actions
+### Environment Variables (Render)
+
+These need to be configured in the Render dashboard for the notifications service:
+
+### Environment Variables (Render)
+
+These need to be configured in the Render dashboard for the notifications service:
 
 ```bash
-# Deploy tracking service only
-GitHub Actions → Deploy Backend
-  environment: dev
-  service: tracking
-  run_migrations: true
-  wait_for_render: true
+NODE_ENV=production
+PORT=5007
 
-# Deploy all services (including tracking)
-GitHub Actions → Deploy Backend
-  environment: dev
-  service: all
-  run_migrations: true
+# Use your existing Postgres (same as other services)
+POSTGRES_HOST=<your-postgres-host>
+POSTGRES_PORT=5432
+POSTGRES_DATABASE=serveaso
+POSTGRES_USER=<your-postgres-user>
+POSTGRES_PASSWORD=<your-postgres-password>
+
+# Redis (your Redis Cloud instance)
+REDIS_HOST=painstaking-turn-practical-89123.db.redis.io
+REDIS_PORT=18399
+REDIS_PASSWORD=<your-redis-password>
+
+# Google Maps API
+GOOGLE_MAPS_API_KEY=<your-google-maps-api-key>
+
+# Security
+JWT_SECRET=<generate with: openssl rand -base64 32>
+ENCRYPTION_KEY=<generate with: openssl rand -hex 16>
+
+# Optional
+CORS_ORIGIN=https://your-web-app.com
 ```
 
 ---
 
-### EC2 Deployment (Prod)
+## Monitoring & Observability
 
-For production EC2 deployment:
+The tracking service is integrated into the monorepo's monitoring system:
 
-1. **Add GitHub Secret:**
-   ```
-   PROD_ENV_TRACKING=<multi-line .env content>
-   ```
+### Metrics Endpoint
+- **URL:** `https://notifications-mjdp.onrender.com/metrics`
+- **Format:** Prometheus text exposition
+- **Metrics:** CPU, memory, uptime, HTTP requests
 
-2. **Optional Path Override:**
-   ```
-   EC2_DEPLOY_PATH_TRACKING=/home/ubuntu/tracking
-   ```
+### Integration Tests
+Location: `tests/integration/metrics.test.mjs`
+- Automatically tests `/metrics` endpoint
+- Runs in CI/CD pipeline
+- Part of deployment verification
 
-3. **Deploy:**
-   ```bash
-   GitHub Actions → Deploy Backend
-     environment: prod
-     service: tracking
-     run_migrations: true
-   ```
+### Deployment Verification
+Location: `.github/scripts/observability-smoke.sh`
+- Runs after deployments
+- Checks service health
+- Included in email notifications
+
+---
+
+## Not Part of deploy-backend Workflow
+
+⚠️ **Important:** The tracking service is **NOT** deployed via the monorepo's `.github/workflows/deploy-backend.yml` workflow.
+
+**Why?**
+- The notifications repo is a separate repository
+- Render auto-deploys from the notifications repo directly
+- No GitHub Actions workflow needed for notifications/tracking
+
+**To deploy tracking:**
+1. Make changes in `services/notifications/tracking/`
+2. Commit to notifications submodule
+3. Push notifications submodule: `cd services/notifications && git push`
+4. Render automatically deploys
+5. Update monorepo submodule reference (optional): `cd ../.. && git add services/notifications && git commit && git push`
 
 ---
 
@@ -228,31 +256,16 @@ curl http://localhost:5007/api/tracking/health
 
 ## Service Configuration
 
-The tracking service is configured in:
+The tracking service is **NOT** in `.github/deploy/services.json` because it deploys separately from the notifications repository.
 
-### `.github/deploy/services.json`
+### Monitoring Integration Only
 
-```json
-{
-  "tracking": {
-    "label": "Tracking",
-    "path": "services/notifications/tracking",
-    "ec2_app": "tracking",
-    "pm2": true,
-    "install": "npm ci --omit=dev",
-    "render_secret": "RENDER_DEPLOY_HOOK_TRACKING",
-    "render_service_id_secret": "RENDER_SERVICE_ID_TRACKING"
-  }
-}
-```
+The tracking service **was added to** these monorepo files for monitoring purposes:
+- `tests/integration/lib/config.mjs` - Service URL for integration tests
+- `tests/integration/metrics.test.mjs` - Metrics endpoint testing
+- `.github/scripts/observability-smoke.sh` - Deployment health checks
 
-### `.github/workflows/deploy-backend.yml`
-
-The workflow now includes `tracking` in:
-- Service selection dropdown
-- Render deploy hook resolution
-- Production environment variable mapping
-- EC2 path resolution
+These files enable the monorepo to monitor the tracking service even though it deploys separately.
 
 ---
 
