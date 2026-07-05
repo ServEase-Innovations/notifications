@@ -16,8 +16,9 @@ const router = express.Router();
 /**
  * GET /api/tracking/availability/:engagementId
  * Check if tracking is available for an engagement
+ * Public endpoint - no authentication required
  */
-router.get('/availability/:engagementId', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/availability/:engagementId', asyncHandler(async (req, res) => {
   const { engagementId } = req.params;
   
   if (!engagementId || isNaN(engagementId)) {
