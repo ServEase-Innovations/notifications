@@ -21,7 +21,7 @@ services:
   - type: web
     name: serveaso-tracking
     runtime: node
-    buildCommand: cd tracking && npm ci
+    buildCommand: cd tracking && npm install
     startCommand: cd tracking && npm start
     envVars:
       - key: NODE_ENV

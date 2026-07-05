@@ -35,7 +35,7 @@ MONGODB_URI=<your-mongo-uri>
 
 **Settings:**
 - **Name:** `serveaso-tracking`
-- **Build Command:** `cd tracking && npm ci`
+- **Build Command:** `cd tracking && npm install`
 - **Start Command:** `cd tracking && npm start`
 - **Auto-Deploy:** Yes
 
@@ -263,7 +263,7 @@ cd Mail && npm ci && npm start
 
 ### Tracking Only:
 ```bash
-cd tracking && npm ci && npm start
+cd tracking && npm install && npm start
 ```
 
 ### Both (if using monorepo manager):
