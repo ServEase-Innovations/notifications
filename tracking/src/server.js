@@ -44,6 +44,10 @@ app.use((req, res, next) => {
 // Routes
 app.use('/api/tracking', trackingRoutes);
 
+// Import and use provider routes
+import providerTrackingRoutes from './routes/providerTrackingRoutes.js';
+app.use('/api/tracking/provider', providerTrackingRoutes);
+
 // Import and use admin routes
 import adminRoutes from './routes/adminRoutes.js';
 app.use('/api/admin/tracking', adminRoutes);

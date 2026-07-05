@@ -19,7 +19,7 @@ export const PROVIDER_STATUS = {
  */
 export async function checkAvailability(engagementId) {
   try {
-    // Query engagement status from database
+    // Query engagement basic data
     const result = await query(
       `SELECT 
         engagement_id,
@@ -46,8 +46,23 @@ export async function checkAvailability(engagementId) {
     
     const engagement = result.rows[0];
     
-    // Determine provider status based on engagement state
-    const providerStatus = determineProviderStatus(engagement);
+    // Check tracking-specific status (separate from task_status)
+    const trackingResult = await query(
+      `SELECT tracking_status, journey_started_at, arrived_at 
+       FROM engagement_tracking_status 
+       WHERE engagement_id = $1`,
+      [engagementId]
+    );
+    
+    // Determine provider status based on tracking status (if exists) or engagement state
+    let providerStatus;
+    if (trackingResult.rows.length > 0) {
+      // Use dedicated tracking status
+      providerStatus = trackingResult.rows[0].tracking_status;
+    } else {
+      // Fall back to deriving from task_status
+      providerStatus = determineProviderStatus(engagement);
+    }
     
     // Tracking is only available when provider is en route
     const isAvailable = providerStatus === PROVIDER_STATUS.EN_ROUTE;
