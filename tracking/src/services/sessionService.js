@@ -75,9 +75,18 @@ export async function createTrackingSession(sessionData) {
     
     // Create new session
     const session_id = generateSessionId();
-    const destinationJSON = typeof destination === 'string' 
-      ? destination 
-      : JSON.stringify(destination);
+    
+    // Convert destination to proper JSON format
+    let destinationJSON;
+    if (typeof destination === 'string') {
+      // If it's a string address, wrap it in an object
+      destinationJSON = JSON.stringify({ address: destination });
+    } else if (typeof destination === 'object') {
+      destinationJSON = JSON.stringify(destination);
+    } else {
+      destinationJSON = JSON.stringify({ address: String(destination) });
+    }
+    
     const teamDataJSON = team_data ? JSON.stringify(team_data) : null;
     
     await client.query(

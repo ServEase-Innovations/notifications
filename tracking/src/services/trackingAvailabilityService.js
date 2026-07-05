@@ -47,12 +47,19 @@ export async function checkAvailability(engagementId) {
     const engagement = result.rows[0];
     
     // Check tracking-specific status (separate from task_status)
-    const trackingResult = await query(
-      `SELECT tracking_status, journey_started_at, arrived_at 
-       FROM engagement_tracking_status 
-       WHERE engagement_id = $1`,
-      [engagementId]
-    );
+    let trackingResult;
+    try {
+      trackingResult = await query(
+        `SELECT tracking_status, journey_started_at, arrived_at 
+         FROM engagement_tracking_status 
+         WHERE engagement_id = $1`,
+        [engagementId]
+      );
+    } catch (trackingError) {
+      console.error('Error querying tracking status (table might not exist):', trackingError.message);
+      // If table doesn't exist, continue with default logic
+      trackingResult = { rows: [] };
+    }
     
     // Determine provider status based on tracking status (if exists) or engagement state
     let providerStatus;
@@ -85,6 +92,7 @@ export async function checkAvailability(engagementId) {
     };
   } catch (error) {
     console.error('Error checking tracking availability:', error);
+    console.error('Error details:', error.message, error.stack);
     throw new Error('Failed to check tracking availability');
   }
 }

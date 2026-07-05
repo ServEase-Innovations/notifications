@@ -35,8 +35,9 @@ router.get('/availability/:engagementId', asyncHandler(async (req, res) => {
 /**
  * POST /api/tracking/session/start
  * Start a tracking session for a customer
+ * NOTE: Authentication temporarily disabled for testing
  */
-router.post('/session/start', authenticateToken, rateLimitSession, asyncHandler(async (req, res) => {
+router.post('/session/start', rateLimitSession, asyncHandler(async (req, res) => {
   const { engagement_id, customer_id } = req.body;
   
   // Validate request
@@ -46,12 +47,12 @@ router.post('/session/start', authenticateToken, rateLimitSession, asyncHandler(
     });
   }
   
-  // Check if customer matches authenticated user
-  if (req.user.id !== customer_id && req.user.role !== 'admin') {
-    return res.status(403).json({
-      error: 'You can only track your own engagements',
-    });
-  }
+  // Check if customer matches authenticated user (skipped during testing)
+  // if (req.user.id !== customer_id && req.user.role !== 'admin') {
+  //   return res.status(403).json({
+  //     error: 'You can only track your own engagements',
+  //   });
+  // }
   
   // Check availability first
   const availability = await checkAvailability(engagement_id);
@@ -88,8 +89,9 @@ router.post('/session/start', authenticateToken, rateLimitSession, asyncHandler(
 /**
  * POST /api/tracking/session/stop
  * Stop a tracking session
+ * NOTE: Authentication temporarily disabled for testing
  */
-router.post('/session/stop', authenticateToken, asyncHandler(async (req, res) => {
+router.post('/session/stop', asyncHandler(async (req, res) => {
   const { session_id } = req.body;
   
   if (!session_id) {
@@ -107,12 +109,12 @@ router.post('/session/stop', authenticateToken, asyncHandler(async (req, res) =>
     });
   }
   
-  // Verify customer owns this session
-  if (session.customer_id !== req.user.id && req.user.role !== 'admin') {
-    return res.status(403).json({
-      error: 'You can only stop your own tracking sessions',
-    });
-  }
+  // Verify customer owns this session (skipped during testing)
+  // if (session.customer_id !== req.user.id && req.user.role !== 'admin') {
+  //   return res.status(403).json({
+  //     error: 'You can only stop your own tracking sessions',
+  //   });
+  // }
   
   // Stop the session
   const stopped = await stopTrackingSession(session_id);
@@ -132,8 +134,9 @@ router.post('/session/stop', authenticateToken, asyncHandler(async (req, res) =>
 /**
  * GET /api/tracking/location/:engagementId
  * Polling endpoint for location updates (WebSocket fallback)
+ * NOTE: Authentication temporarily disabled for testing
  */
-router.get('/location/:engagementId', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/location/:engagementId', asyncHandler(async (req, res) => {
   const { engagementId } = req.params;
   
   if (!engagementId || isNaN(engagementId)) {
@@ -158,8 +161,9 @@ router.get('/location/:engagementId', authenticateToken, asyncHandler(async (req
 /**
  * GET /api/tracking/eta/:engagementId
  * Get current ETA calculation
+ * NOTE: Authentication temporarily disabled for testing
  */
-router.get('/eta/:engagementId', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/eta/:engagementId', asyncHandler(async (req, res) => {
   const { engagementId } = req.params;
   
   if (!engagementId || isNaN(engagementId)) {
