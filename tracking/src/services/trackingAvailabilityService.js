@@ -28,9 +28,7 @@ export async function checkAvailability(engagementId) {
         customerid as customer_id,
         address as service_address,
         start_date as service_date,
-        booking_type,
-        is_team,
-        team_members
+        booking_type
       FROM engagements 
       WHERE engagement_id = $1`,
       [engagementId]
@@ -54,31 +52,15 @@ export async function checkAvailability(engagementId) {
     // Tracking is only available when provider is en route
     const isAvailable = providerStatus === PROVIDER_STATUS.EN_ROUTE;
     
-    // Build team data if applicable
-    let teamData = null;
-    if (engagement.is_team && engagement.team_members) {
-      try {
-        const teamMembers = typeof engagement.team_members === 'string' 
-          ? JSON.parse(engagement.team_members) 
-          : engagement.team_members;
-        
-        teamData = {
-          lead_provider_id: teamMembers[0]?.id || engagement.provider_id,
-          member_ids: teamMembers.map(m => m.id),
-          member_count: teamMembers.length,
-          members: teamMembers,
-        };
-      } catch (error) {
-        console.error('Failed to parse team members:', error);
-      }
-    }
+    // Note: Team tracking feature not yet implemented in schema
+    // is_team and team_members columns don't exist in engagements table
     
     return {
       available: isAvailable,
       provider_status: providerStatus,
       reason: isAvailable ? null : getUnavailableReason(providerStatus),
-      is_team: engagement.is_team || false,
-      team_data: teamData,
+      is_team: false, // Not yet supported in schema
+      team_data: null,
       engagement_details: {
         id: engagement.engagement_id,
         provider_id: engagement.provider_id,
@@ -190,36 +172,10 @@ export async function updateProviderStatus(engagementId, newStatus) {
  * @returns {Promise<object|null>} Team details or null
  */
 export async function getTeamDetails(engagementId) {
-  try {
-    const result = await query(
-      `SELECT 
-        is_team,
-        team_members,
-        serviceproviderid as provider_id
-      FROM engagements 
-      WHERE engagement_id = $1`,
-      [engagementId]
-    );
-    
-    if (result.rows.length === 0 || !result.rows[0].is_team) {
-      return null;
-    }
-    
-    const engagement = result.rows[0];
-    const teamMembers = typeof engagement.team_members === 'string'
-      ? JSON.parse(engagement.team_members)
-      : engagement.team_members;
-    
-    return {
-      lead_provider_id: teamMembers[0]?.id || engagement.provider_id,
-      member_ids: teamMembers.map(m => m.id),
-      member_names: teamMembers.map(m => m.name),
-      member_count: teamMembers.length,
-    };
-  } catch (error) {
-    console.error('Error getting team details:', error);
-    return null;
-  }
+  // Team tracking not yet implemented in schema
+  // is_team and team_members columns don't exist in engagements table
+  console.log('Team tracking not yet supported - schema migration needed');
+  return null;
 }
 
 export default {
