@@ -7,14 +7,14 @@ const config = {
   port: process.env.PORT || 5007,
   nodeEnv: process.env.NODE_ENV || 'development',
   
-  // Database
+  // Database - Uses monorepo Postgres env vars (POSTGRES_* or DB_*)
   database: {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT) || 5432,
-    name: process.env.DB_NAME || 'serveaso',
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD,
-    ssl: process.env.DB_SSL === 'true',
+    host: process.env.POSTGRES_HOST || process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.POSTGRES_PORT || process.env.DB_PORT) || 5432,
+    name: process.env.POSTGRES_DATABASE || process.env.DB_NAME || 'serveaso',
+    user: process.env.POSTGRES_USER || process.env.DB_USER || 'postgres',
+    password: process.env.POSTGRES_PASSWORD || process.env.DB_PASSWORD,
+    ssl: process.env.DB_SSL === 'true' || process.env.POSTGRES_SSL === 'true',
     max: 20, // Maximum pool size
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,
