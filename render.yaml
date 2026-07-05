@@ -1,0 +1,56 @@
+# Render deployment configuration for notification services
+services:
+  # Mail notification service
+  - type: web
+    name: serveaso-mail
+    runtime: node
+    buildCommand: cd Mail && npm ci
+    startCommand: cd Mail && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      # Add your Mail service env vars here
+      # - key: SENDGRID_API_KEY
+      #   sync: false
+      # - key: MONGODB_URI
+      #   sync: false
+
+  # Provider tracking service (NEW)
+  - type: web
+    name: serveaso-tracking
+    runtime: node
+    buildCommand: cd tracking && npm ci
+    startCommand: cd tracking && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5007
+      # Redis configuration
+      - key: REDIS_HOST
+        sync: false
+      - key: REDIS_PORT
+        value: 6379
+      - key: REDIS_PASSWORD
+        sync: false
+      # PostgreSQL configuration
+      - key: DATABASE_HOST
+        sync: false
+      - key: DATABASE_PORT
+        value: 5432
+      - key: DATABASE_NAME
+        sync: false
+      - key: DATABASE_USER
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
+      # Google Maps API
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+      # Security
+      - key: JWT_SECRET
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false

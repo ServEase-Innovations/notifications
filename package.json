@@ -1,0 +1,15 @@
+{
+  "name": "serveaso-notifications",
+  "version": "1.0.0",
+  "description": "Notification services for Serveaso (Mail + Tracking)",
+  "scripts": {
+    "start:mail": "cd Mail && npm start",
+    "start:tracking": "cd tracking && npm start",
+    "start": "npm run start:mail",
+    "dev:mail": "cd Mail && npm run dev",
+    "dev:tracking": "cd tracking && npm run dev",
+    "install:all": "cd Mail && npm ci && cd ../tracking && npm ci"
+  },
+  "author": "Serveaso",
+  "license": "ISC"
+}
