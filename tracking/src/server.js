@@ -48,6 +48,54 @@ app.use('/api/tracking', trackingRoutes);
 import adminRoutes from './routes/adminRoutes.js';
 app.use('/api/admin/tracking', adminRoutes);
 
+// Prometheus metrics endpoint
+app.get('/metrics', (req, res) => {
+  const uptime = process.uptime();
+  const memUsage = process.memoryUsage();
+  
+  // Basic Prometheus text format
+  const metrics = [
+    '# HELP process_cpu_user_seconds_total Total user CPU time spent in seconds',
+    '# TYPE process_cpu_user_seconds_total counter',
+    `process_cpu_user_seconds_total ${process.cpuUsage().user / 1000000}`,
+    '',
+    '# HELP process_cpu_system_seconds_total Total system CPU time spent in seconds',
+    '# TYPE process_cpu_system_seconds_total counter',
+    `process_cpu_system_seconds_total ${process.cpuUsage().system / 1000000}`,
+    '',
+    '# HELP nodejs_heap_size_total_bytes Process heap size from Node.js in bytes',
+    '# TYPE nodejs_heap_size_total_bytes gauge',
+    `nodejs_heap_size_total_bytes ${memUsage.heapTotal}`,
+    '',
+    '# HELP nodejs_heap_size_used_bytes Process heap size used from Node.js in bytes',
+    '# TYPE nodejs_heap_size_used_bytes gauge',
+    `nodejs_heap_size_used_bytes ${memUsage.heapUsed}`,
+    '',
+    '# HELP nodejs_external_memory_bytes Node.js external memory size in bytes',
+    '# TYPE nodejs_external_memory_bytes gauge',
+    `nodejs_external_memory_bytes ${memUsage.external}`,
+    '',
+    '# HELP process_uptime_seconds Number of seconds the process has been running',
+    '# TYPE process_uptime_seconds gauge',
+    `process_uptime_seconds ${uptime}`,
+    '',
+    '# HELP http_requests_total Total HTTP requests',
+    '# TYPE http_requests_total counter',
+    `http_requests_total{service="tracking",method="GET",status="200"} ${app.get('requestCount') || 0}`,
+    '',
+  ].join('\n');
+  
+  res.set('Content-Type', 'text/plain; version=0.0.4');
+  res.send(metrics);
+});
+
+// Request counter middleware (for metrics)
+app.use((req, res, next) => {
+  const count = app.get('requestCount') || 0;
+  app.set('requestCount', count + 1);
+  next();
+});
+
 // Root health check
 app.get('/', (req, res) => {
   res.json({
