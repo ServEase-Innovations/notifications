@@ -20,21 +20,19 @@ export const PROVIDER_STATUS = {
 export async function checkAvailability(engagementId) {
   try {
     // Query engagement status from database
-    // NOTE: This assumes an 'engagements' table exists with status tracking
-    // Adjust the query based on your actual schema
     const result = await query(
       `SELECT 
-        id,
-        status as engagement_status,
-        provider_id,
-        customer_id,
-        service_address,
-        service_date,
-        start_time,
+        engagement_id,
+        task_status as engagement_status,
+        serviceproviderid as provider_id,
+        customerid as customer_id,
+        address as service_address,
+        start_date as service_date,
+        booking_type,
         is_team,
         team_members
       FROM engagements 
-      WHERE id = $1`,
+      WHERE engagement_id = $1`,
       [engagementId]
     );
     
@@ -82,7 +80,7 @@ export async function checkAvailability(engagementId) {
       is_team: engagement.is_team || false,
       team_data: teamData,
       engagement_details: {
-        id: engagement.id,
+        id: engagement.engagement_id,
         provider_id: engagement.provider_id,
         customer_id: engagement.customer_id,
         service_address: engagement.service_address,
@@ -175,8 +173,8 @@ export async function updateProviderStatus(engagementId, newStatus) {
   try {
     await query(
       `UPDATE engagements 
-       SET status = $1, updated_at = NOW() 
-       WHERE id = $2`,
+       SET task_status = $1, updated_at = NOW() 
+       WHERE engagement_id = $2`,
       [newStatus, engagementId]
     );
     return true;
@@ -197,9 +195,9 @@ export async function getTeamDetails(engagementId) {
       `SELECT 
         is_team,
         team_members,
-        provider_id
+        serviceproviderid as provider_id
       FROM engagements 
-      WHERE id = $1`,
+      WHERE engagement_id = $1`,
       [engagementId]
     );
     
