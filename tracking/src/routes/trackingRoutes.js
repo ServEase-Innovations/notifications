@@ -10,6 +10,7 @@ import { getLocationUpdate } from '../services/locationProcessor.js';
 import { getETA } from '../services/etaCalculator.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { rateLimitSession } from '../middleware/rateLimit.js';
+import { query } from '../database/connection.js';
 
 const router = express.Router();
 
@@ -159,8 +160,96 @@ router.get('/location/:engagementId', asyncHandler(async (req, res) => {
 }));
 
 /**
+ * POST /api/tracking/calculate-eta
+ * Calculate ETA for an engagement (traffic-aware route)
+ * NOTE: Authentication temporarily disabled for testing
+ */
+router.post('/calculate-eta', asyncHandler(async (req, res) => {
+  const { engagement_id } = req.body;
+  
+  if (!engagement_id) {
+    return res.status(400).json({
+      error: 'Missing required field: engagement_id',
+    });
+  }
+  
+  try {
+    // Get provider's current location from Redis
+    const locationData = await getLocationUpdate(engagement_id);
+    
+    if (!locationData || !locationData.location) {
+      return res.status(404).json({
+        error: 'Provider location not available',
+        message: 'Provider must share location before ETA can be calculated',
+      });
+    }
+    
+    // Get destination from engagements table
+    const engagementResult = await query(
+      `SELECT 
+        engagement_id,
+        address as service_address,
+        latitude,
+        longitude,
+        customerid as customer_id
+      FROM engagements 
+      WHERE engagement_id = $1`,
+      [engagement_id]
+    );
+    
+    if (engagementResult.rows.length === 0) {
+      return res.status(404).json({
+        error: 'Engagement not found',
+      });
+    }
+    
+    const engagement = engagementResult.rows[0];
+    
+    // Use latitude and longitude from engagement table
+    if (!engagement.latitude || !engagement.longitude) {
+      return res.status(400).json({
+        error: 'Destination coordinates not available',
+        message: 'Engagement must have latitude and longitude set for ETA calculation',
+        engagement_id: engagement_id,
+        hint: 'Please update the engagement with booking location coordinates',
+      });
+    }
+    
+    const destinationCoords = {
+      lat: parseFloat(engagement.latitude),
+      lng: parseFloat(engagement.longitude),
+    };
+    
+    // Calculate ETA using Google Maps Directions API
+    const { calculateETA } = await import('../services/etaCalculator.js');
+    
+    const providerCoords = {
+      lat: locationData.location.latitude,
+      lng: locationData.location.longitude,
+    };
+    
+    const etaResult = await calculateETA(providerCoords, destinationCoords, engagement_id);
+    
+    if (!etaResult) {
+      return res.status(500).json({
+        error: 'Failed to calculate ETA',
+        message: 'Unable to calculate route at this time',
+      });
+    }
+    
+    res.json(etaResult);
+  } catch (error) {
+    console.error('Error calculating ETA:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error.message,
+    });
+  }
+}));
+
+/**
  * GET /api/tracking/eta/:engagementId
- * Get current ETA calculation
+ * Get current ETA calculation from cache
  * NOTE: Authentication temporarily disabled for testing
  */
 router.get('/eta/:engagementId', asyncHandler(async (req, res) => {
@@ -172,13 +261,13 @@ router.get('/eta/:engagementId', asyncHandler(async (req, res) => {
     });
   }
   
-  // Get ETA from cache or calculate new
+  // Get ETA from cache
   const eta = await getETA(parseInt(engagementId));
   
   if (!eta) {
     return res.status(404).json({
       error: 'ETA not available',
-      message: 'Unable to calculate ETA at this time',
+      message: 'ETA has not been calculated yet. Use POST /calculate-eta first.',
     });
   }
   

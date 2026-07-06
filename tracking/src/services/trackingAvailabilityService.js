@@ -27,6 +27,8 @@ export async function checkAvailability(engagementId) {
         serviceproviderid as provider_id,
         customerid as customer_id,
         address as service_address,
+        latitude,
+        longitude,
         start_date as service_date,
         booking_type
       FROM engagements 
@@ -45,6 +47,13 @@ export async function checkAvailability(engagementId) {
     }
     
     const engagement = result.rows[0];
+    
+    // Parse address - use latitude/longitude from engagement table
+    let addressData = {
+      raw: engagement.service_address || '',
+      latitude: engagement.latitude,
+      longitude: engagement.longitude,
+    };
     
     // Check tracking-specific status (separate from task_status)
     let trackingResult;
@@ -87,7 +96,11 @@ export async function checkAvailability(engagementId) {
         id: engagement.engagement_id,
         provider_id: engagement.provider_id,
         customer_id: engagement.customer_id,
-        service_address: engagement.service_address,
+        service_address: {
+          address: addressData.raw || '',
+          latitude: addressData.latitude,
+          longitude: addressData.longitude,
+        },
       },
     };
   } catch (error) {
