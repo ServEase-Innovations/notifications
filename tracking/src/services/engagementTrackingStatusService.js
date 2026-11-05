@@ -12,9 +12,32 @@ export const TRACKING_STATUS = {
 };
 
 /**
+ * Get provider ID for an engagement
+ * @param {number} engagementId - Engagement identifier
+ * @returns {Promise<number>} Provider ID
+ */
+async function getProviderIdFromEngagement(engagementId) {
+  try {
+    const result = await query(
+      `SELECT sp_id FROM engagements WHERE engagement_id = $1`,
+      [engagementId]
+    );
+    
+    if (result.rows.length === 0) {
+      throw new Error(`Engagement ${engagementId} not found`);
+    }
+    
+    return result.rows[0].sp_id;
+  } catch (error) {
+    console.error('Error getting provider ID from engagement:', error);
+    throw error;
+  }
+}
+
+/**
  * Get or create tracking status for an engagement
  * @param {number} engagementId - Engagement identifier
- * @param {number} providerId - Provider identifier
+ * @param {number} providerId - Provider identifier (optional, will be fetched if not provided)
  * @returns {Promise<object>} Tracking status record
  */
 export async function getOrCreateTrackingStatus(engagementId, providerId) {
@@ -27,6 +50,11 @@ export async function getOrCreateTrackingStatus(engagementId, providerId) {
     
     if (result.rows.length > 0) {
       return result.rows[0];
+    }
+    
+    // If provider_id not provided, fetch from engagement
+    if (!providerId) {
+      providerId = await getProviderIdFromEngagement(engagementId);
     }
     
     // Create new record
@@ -128,9 +156,16 @@ function getTimestampFieldForStatus(status) {
  * @param {object} location - Current location { latitude, longitude }
  * @returns {Promise<object>} Updated tracking status
  */
-export async function startJourney(engagementId, providerId, location = {}) {
+/**
+ * Start journey for an engagement (provider en route to customer)
+ * @param {number} engagementId - Engagement identifier
+ * @param {number} providerId - Provider identifier (optional, will be fetched from engagement if not provided)
+ * @param {object} location - Current location { latitude, longitude }
+ * @returns {Promise<object>} Updated tracking status
+ */
+export async function startJourney(engagementId, providerId = null, location = {}) {
   try {
-    // Ensure tracking status record exists
+    // Ensure tracking status record exists (will fetch provider_id if not provided)
     await getOrCreateTrackingStatus(engagementId, providerId);
     
     // Update to en_route with location

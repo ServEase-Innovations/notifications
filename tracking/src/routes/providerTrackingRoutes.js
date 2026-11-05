@@ -21,8 +21,8 @@ const router = express.Router();
 router.post('/start-journey', asyncHandler(async (req, res) => {
   const { engagement_id, latitude, longitude, provider_id } = req.body;
   
-  // For testing: accept provider_id from body or use mock
-  const providerId = provider_id || req.user?.id || 1;
+  // Provider ID is optional - will be fetched from engagement if not provided
+  const providerId = provider_id || req.user?.id || null;
   
   if (!engagement_id) {
     return res.status(400).json({
