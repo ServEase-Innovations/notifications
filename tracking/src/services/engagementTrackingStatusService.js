@@ -19,7 +19,7 @@ export const TRACKING_STATUS = {
 async function getProviderIdFromEngagement(engagementId) {
   try {
     const result = await query(
-      `SELECT sp_id FROM engagements WHERE engagement_id = $1`,
+      `SELECT serviceproviderid FROM engagements WHERE engagement_id = $1`,
       [engagementId]
     );
     
@@ -27,7 +27,7 @@ async function getProviderIdFromEngagement(engagementId) {
       throw new Error(`Engagement ${engagementId} not found`);
     }
     
-    return result.rows[0].sp_id;
+    return result.rows[0].serviceproviderid;
   } catch (error) {
     console.error('Error getting provider ID from engagement:', error);
     throw error;
